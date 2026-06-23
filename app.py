@@ -32,8 +32,6 @@ st.markdown(accent_css, unsafe_allow_html=True)
 st.markdown(
     f"""
 <style>
-body, .stApp {
-    background-color: #0f172a;
 }
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
 

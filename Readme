@@ -1,0 +1,50 @@
+# ⚙️ DataForge
+
+A web app that lets anyone upload a CSV, Excel, or JSON file and clean, explore, and export it — no code required.
+
+**Live demo:** _add your Streamlit Cloud link here after deploying_
+
+## Features
+
+- **Light/dark mode toggle**, green accent branding
+- **Try with example data** — built-in movies dataset (with missing values & a duplicate row) so visitors can test it instantly without their own file
+- **50 MB upload limit** to keep things stable on free hosting
+- **Upload** any CSV, Excel (.xlsx), or JSON file
+- **Clean**
+  - Identify missing values (count + % per column)
+  - Fill missing values (mean, median, mode, custom value, forward/backward fill) or drop rows
+  - Detect and remove duplicate rows (full row or by chosen columns)
+  - Convert column data types (string, integer, float, datetime, category, boolean)
+- **Filter & Sort**
+  - Dynamic filters built per column (range sliders for numbers, date pickers for dates, multiselect/search for text)
+  - Multi-column sorting
+  - Promote a filtered/sorted view to your working dataset, or download it directly
+- **Visualize**
+  - Histograms, bar charts, scatter plots, box plots, line charts, pie charts, correlation heatmaps
+- **Statistics**
+  - Numeric summary stats (`describe()`)
+  - Categorical value counts and percentages
+- **Export**
+  - Download the cleaned dataset as CSV, Excel, or JSON
+
+## Tech stack
+
+- [Streamlit](https://streamlit.io/) — UI and app framework
+- [Pandas](https://pandas.pydata.org/) — data manipulation
+- [Plotly](https://plotly.com/python/) — interactive charts
+- [OpenPyXL](https://openpyxl.readthedocs.io/) — Excel read/write
+
+## Run locally
+
+```bash
+pip install -r requirements.txt
+streamlit run app.py
+```
+
+## Deploy
+
+Push to GitHub, then deploy for free on [Streamlit Community Cloud](https://streamlit.io/cloud) by pointing it at `app.py` in this repo.
+
+## Privacy
+
+Uploaded files are processed only in-memory for your session and are not stored.

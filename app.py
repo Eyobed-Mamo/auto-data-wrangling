@@ -49,6 +49,67 @@ div[data-testid="stMetricValue"] {{ color: {ACCENT_DARK}; }}
 
 st.markdown(dark_css if st.session_state.dark_mode else light_css, unsafe_allow_html=True)
 
+# ── Soft/rounded style + custom font (applies in both themes) ──
+st.markdown(
+    f"""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
+html, body, [class*="css"] {{ font-family: 'Poppins', sans-serif; }}
+
+.stButton button, .stDownloadButton button {{
+    border-radius: 999px !important;
+    padding: 0.5rem 1.25rem !important;
+    font-weight: 600 !important;
+    transition: transform 0.05s ease-in-out;
+}}
+.stButton button:active, .stDownloadButton button:active {{ transform: scale(0.97); }}
+
+div[data-testid="stMetric"] {{
+    background: rgba(34, 197, 94, 0.08);
+    border-radius: 16px;
+    padding: 12px 16px;
+    border: 1px solid rgba(34, 197, 94, 0.25);
+}}
+
+div[data-testid="stDataFrame"], div[data-testid="stExpander"] {{
+    border-radius: 14px !important;
+    overflow: hidden;
+}}
+
+div[data-testid="stFileUploaderDropzone"] {{
+    border-radius: 16px !important;
+}}
+
+.stTabs [data-baseweb="tab"] {{
+    border-radius: 12px 12px 0 0 !important;
+}}
+
+input, textarea, select, div[data-baseweb="select"] > div {{
+    border-radius: 10px !important;
+}}
+
+.banner-header {{
+    background: linear-gradient(135deg, {ACCENT} 0%, {ACCENT_DARK} 100%);
+    padding: 1.6rem 2rem;
+    border-radius: 20px;
+    margin-bottom: 1.2rem;
+}}
+.banner-header h1 {{
+    color: #ffffff;
+    margin: 0;
+    font-weight: 700;
+}}
+.banner-header p {{
+    color: #eafff0;
+    margin: 6px 0 0 0;
+    font-size: 0.95rem;
+}}
+</style>
+""",
+    unsafe_allow_html=True,
+)
+
 
 # ── Built-in sample dataset (movies) ────────────────────────
 def build_sample_movies_df():
@@ -175,10 +236,14 @@ with st.sidebar.expander("ℹ️ About"):
 
 # ── Empty state ──────────────────────────────────────────────
 if "df" not in st.session_state:
-    st.title(f"{APP_ICON} {APP_NAME}")
     st.markdown(
-        "Drop a CSV, Excel, or JSON file in the sidebar and I'll help you clean it up, "
-        "dig through it, and get it ready for whatever's next."
+        f"""
+<div class="banner-header">
+<h1>{APP_ICON} {APP_NAME}</h1>
+<p>Drop a CSV, Excel, or JSON file in the sidebar and I'll help you clean it up, dig through it, and get it ready for whatever's next.</p>
+</div>
+        """,
+        unsafe_allow_html=True,
     )
 
     if st.button("🎬 Try with example movie data", type="primary"):
@@ -214,8 +279,15 @@ if st.sidebar.button("↩️ Reset to original upload"):
     st.rerun()
 
 # ── Header & top metrics ─────────────────────────────────────
-st.title(f"{APP_ICON} {APP_NAME}")
-st.caption("Drop in a file, clean it up, poke around, and export when you're happy with it.")
+st.markdown(
+    f"""
+<div class="banner-header">
+<h1>{APP_ICON} {APP_NAME}</h1>
+<p>Drop in a file, clean it up, poke around, and export when you're happy with it.</p>
+</div>
+    """,
+    unsafe_allow_html=True,
+)
 
 m1, m2, m3, m4 = st.columns(4)
 m1.metric("Rows", f"{df.shape[0]:,}")

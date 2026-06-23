@@ -167,9 +167,7 @@ with st.sidebar.expander("ℹ️ About"):
         """
 **Built by Eyobed Mamo**
 
-<!-- TODO(Eyobed): replace this line with your own "why I built this" note —
-it'll show up right here in the app. -->
-*Write a line or two here about why you made this.*
+*Built this so anyone could clean and explore a dataset in a browser, no code needed. Started as a class project, turned into something I actually use.*
 
 [GitHub](https://github.com/Eyobed-Mamo)
         """

@@ -217,7 +217,7 @@ with st.sidebar.expander("🎬 Try the example dataset"):
         st.rerun()
 
 st.sidebar.divider()
-with st.sidebar.expander("ℹ️ About"):
+with st.sidebar.expander("About"):
     st.markdown(
         """
 **Built by Eyobed Mamo**
@@ -248,13 +248,13 @@ if "df" not in st.session_state:
         f"""
 Once your data's loaded, here's what you can do with it:
 
-- 🔍 Spot missing values and decide how to handle them
-- 🗑️ Find and clear out duplicate rows
-- 🔀 Fix data types that came in wrong (text that should be a number, etc.)
-- 🎛️ Filter down to what you care about, then sort it
-- 📊 Throw together charts to see what's going on
-- 🔢 Pull quick summary stats without writing a line of code
-- ⬇️ Export the cleaned version as CSV, Excel, or JSON when you're done
+-  Spot missing values and decide how to handle them
+-  Find and clear out duplicate rows
+-  Fix data types that came in wrong (text that should be a number, etc.)
+-  Filter down to what you care about, then sort it
+-  Throw together charts to see what's going on
+-  Pull quick summary stats without writing a line of code
+-  Export the cleaned version as CSV, Excel, or JSON when you're done
 
 Handles files up to **{MAX_FILE_SIZE_MB} MB**. Everything happens in your browser session — nothing gets saved on a server anywhere.
         """

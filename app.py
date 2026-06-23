@@ -1,212 +1,524 @@
-import streamlit as st
-import pandas as pd
+import io
 import numpy as np
+import pandas as pd
 import plotly.express as px
+import streamlit as st
 
-# ── Page config ──────────────────────────────────────────────
-st.set_page_config(page_title="Auto Data Wrangling", layout="wide")
+# ── Brand ────────────────────────────────────────────────────
+APP_NAME = "DataForge"
+APP_ICON = "⚙️"
+ACCENT = "#22c55e"      # green
+ACCENT_DARK = "#16a34a"
+MAX_FILE_SIZE_MB = 50
+MAX_UNIQUE_FOR_MULTISELECT = 50
 
-# ── Load & clean data (same logic as your original script) ───
-@st.cache_data
-def load_data():
-    url = "https://cf-courses-data.s3.us.cloud-object-storage.appdomain.cloud/IBMDeveloperSkillsNetwork-DA0101EN-SkillsNetwork/labs/Data%20files/auto.csv"
-    headers = [
-        "symboling","normalized-losses","make","fuel-type","aspiration",
-        "num-of-doors","body-style","drive-wheels","engine-location",
-        "wheel-base","length","width","height","curb-weight","engine-type",
-        "num-of-cylinders","engine-size","fuel-system","bore","stroke",
-        "compression-ratio","horsepower","peak-rpm","city-mpg","highway-mpg","price"
+st.set_page_config(page_title=APP_NAME, page_icon=APP_ICON, layout="wide")
+
+# ── Theme toggle (light/dark) ────────────────────────────────
+if "dark_mode" not in st.session_state:
+    st.session_state.dark_mode = False
+
+dark_css = f"""
+<style>
+.stApp {{ background-color: #0e1117; color: #fafafa; }}
+section[data-testid="stSidebar"] {{ background-color: #161a23; }}
+section[data-testid="stSidebar"] * {{ color: #fafafa !important; }}
+h1, h2, h3, h4, h5, h6, p, span, label, .stMarkdown {{ color: #fafafa; }}
+div[data-testid="stMetricValue"] {{ color: {ACCENT}; }}
+div[data-testid="stDataFrame"] {{ background-color: #161a23; }}
+.stTabs [data-baseweb="tab"] {{ color: #c9c9c9; }}
+.stTabs [aria-selected="true"] {{ color: {ACCENT} !important; border-bottom-color: {ACCENT} !important; }}
+.stButton button, .stDownloadButton button {{
+    background-color: {ACCENT}; color: #0e1117; border: none;
+}}
+.stButton button:hover, .stDownloadButton button:hover {{ background-color: {ACCENT_DARK}; color: #fff; }}
+input, textarea, select {{ background-color: #1c212c !important; color: #fafafa !important; }}
+</style>
+"""
+
+light_css = f"""
+<style>
+div[data-testid="stMetricValue"] {{ color: {ACCENT_DARK}; }}
+.stTabs [aria-selected="true"] {{ color: {ACCENT_DARK} !important; border-bottom-color: {ACCENT_DARK} !important; }}
+.stButton button, .stDownloadButton button {{
+    background-color: {ACCENT}; color: #ffffff; border: none;
+}}
+.stButton button:hover, .stDownloadButton button:hover {{ background-color: {ACCENT_DARK}; color: #fff; }}
+</style>
+"""
+
+st.markdown(dark_css if st.session_state.dark_mode else light_css, unsafe_allow_html=True)
+
+
+# ── Built-in sample dataset (movies) ────────────────────────
+def build_sample_movies_df():
+    data = [
+        {"title": "Inception", "genre": "Sci-Fi", "director": "Christopher Nolan", "release_year": 2010, "runtime_min": 148, "budget_musd": 160, "revenue_musd": 836.8, "rating": 8.8, "votes": 2400000},
+        {"title": "The Dark Knight", "genre": "Action", "director": "Christopher Nolan", "release_year": 2008, "runtime_min": 152, "budget_musd": 185, "revenue_musd": 1006.0, "rating": 9.0, "votes": 2700000},
+        {"title": "Parasite", "genre": "Thriller", "director": "Bong Joon-ho", "release_year": 2019, "runtime_min": 132, "budget_musd": 11, "revenue_musd": 263.1, "rating": 8.5, "votes": 850000},
+        {"title": "Get Out", "genre": "Horror", "director": "Jordan Peele", "release_year": 2017, "runtime_min": 104, "budget_musd": 4.5, "revenue_musd": 255.4, "rating": 7.7, "votes": 560000},
+        {"title": "La La Land", "genre": "Musical", "director": "Damien Chazelle", "release_year": 2016, "runtime_min": 128, "budget_musd": 30, "revenue_musd": 446.0, "rating": 8.0, "votes": 510000},
+        {"title": "Interstellar", "genre": "Sci-Fi", "director": "Christopher Nolan", "release_year": 2014, "runtime_min": 169, "budget_musd": 165, "revenue_musd": 701.7, "rating": 8.7, "votes": 1900000},
+        {"title": "Whiplash", "genre": "Drama", "director": "Damien Chazelle", "release_year": 2014, "runtime_min": 106, "budget_musd": 3.3, "revenue_musd": 49.0, "rating": 8.5, "votes": 850000},
+        {"title": "Mad Max: Fury Road", "genre": "Action", "director": "George Miller", "release_year": 2015, "runtime_min": 120, "budget_musd": 150, "revenue_musd": 378.9, "rating": 8.1, "votes": 1100000},
+        {"title": "Spirited Away", "genre": "Animation", "director": "Hayao Miyazaki", "release_year": 2001, "runtime_min": 125, "budget_musd": 19, "revenue_musd": 395.6, "rating": 8.6, "votes": 780000},
+        {"title": "Coco", "genre": "Animation", "director": "Lee Unkrich", "release_year": 2017, "runtime_min": 105, "budget_musd": 175, "revenue_musd": 807.1, "rating": 8.4, "votes": 470000},
+        {"title": "Joker", "genre": "Drama", "director": "Todd Phillips", "release_year": 2019, "runtime_min": 122, "budget_musd": 55, "revenue_musd": 1074.0, "rating": 8.4, "votes": 1500000},
+        {"title": "Knives Out", "genre": "Mystery", "director": "Rian Johnson", "release_year": 2019, "runtime_min": 130, "budget_musd": 40, "revenue_musd": 311.4, "rating": 7.9, "votes": 600000},
+        {"title": "Dune", "genre": "Sci-Fi", "director": "Denis Villeneuve", "release_year": 2021, "runtime_min": 155, "budget_musd": 165, "revenue_musd": 402.0, "rating": 8.0, "votes": 750000},
+        {"title": "Everything Everywhere All at Once", "genre": "Sci-Fi", "director": None, "release_year": 2022, "runtime_min": 140, "budget_musd": 25, "revenue_musd": 141.3, "rating": 7.9, "votes": 420000},
+        {"title": "The Grand Budapest Hotel", "genre": "Comedy", "director": "Wes Anderson", "release_year": 2014, "runtime_min": 99, "budget_musd": 25, "revenue_musd": 174.8, "rating": 8.1, "votes": 730000},
+        {"title": "Moonlight", "genre": "Drama", "director": "Barry Jenkins", "release_year": 2016, "runtime_min": 111, "budget_musd": 1.5, "revenue_musd": 65.3, "rating": 7.4, "votes": 240000},
+        {"title": "Soul", "genre": "Animation", "director": "Pete Docter", "release_year": 2020, "runtime_min": 100, "budget_musd": 150, "revenue_musd": None, "rating": 8.0, "votes": 280000},
+        {"title": "Arrival", "genre": "Sci-Fi", "director": "Denis Villeneuve", "release_year": 2016, "runtime_min": 116, "budget_musd": 47, "revenue_musd": 203.4, "rating": 7.9, "votes": 760000},
+        {"title": "Her", "genre": "Drama", "director": "Spike Jonze", "release_year": 2013, "runtime_min": 126, "budget_musd": 23, "revenue_musd": 48.3, "rating": 8.0, "votes": 470000},
+        {"title": "Birdman", "genre": "Comedy", "director": "Alejandro G. Iñárritu", "release_year": 2014, "runtime_min": 119, "budget_musd": 18, "revenue_musd": 103.2, "rating": 7.7, "votes": 470000},
+        # Intentional duplicate row for the "remove duplicates" demo
+        {"title": "Inception", "genre": "Sci-Fi", "director": "Christopher Nolan", "release_year": 2010, "runtime_min": 148, "budget_musd": 160, "revenue_musd": 836.8, "rating": 8.8, "votes": 2400000},
     ]
-    raw = pd.read_csv(url, names=headers)
-    df = raw.copy()
+    return pd.DataFrame(data)
 
-    # Replace ? with NaN
-    df.replace("?", np.nan, inplace=True)
 
-    # Fill missing numeric columns with mean
-    for col in ["normalized-losses", "bore", "stroke", "horsepower", "peak-rpm"]:
-        df[col] = pd.to_numeric(df[col], errors="coerce")
-        df[col].fillna(df[col].mean(), inplace=True)
+# ── File I/O helpers ─────────────────────────────────────────
+def load_file(uploaded_file):
+    name = uploaded_file.name.lower()
+    if name.endswith(".csv"):
+        return pd.read_csv(uploaded_file)
+    if name.endswith((".xlsx", ".xls")):
+        return pd.read_excel(uploaded_file)
+    if name.endswith(".json"):
+        return pd.read_json(uploaded_file)
+    raise ValueError("Unsupported file type. Please upload a .csv, .xlsx, or .json file.")
 
-    # Fill num-of-doors with most frequent
-    df["num-of-doors"].fillna("four", inplace=True)
 
-    # Drop rows with no price
-    df.dropna(subset=["price"], inplace=True)
-    df.reset_index(drop=True, inplace=True)
+def to_csv_bytes(df):
+    return df.to_csv(index=False).encode("utf-8")
 
-    # Fix data types
-    df["price"]      = df["price"].astype(float)
-    df["horsepower"] = df["horsepower"].astype(float)
-    df["peak-rpm"]   = df["peak-rpm"].astype(float)
 
-    # Unit conversions
-    df["city-L/100km"]    = 235 / df["city-mpg"].astype(float)
-    df["highway-L/100km"] = 235 / df["highway-mpg"].astype(float)
+def to_excel_bytes(df):
+    buf = io.BytesIO()
+    with pd.ExcelWriter(buf, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False, sheet_name="data")
+    return buf.getvalue()
 
-    # Normalize
-    for col in ["length", "width", "height"]:
-        df[col] = pd.to_numeric(df[col], errors="coerce")
-        df[col] = df[col] / df[col].max()
 
-    # Binning horsepower
-    bins = np.linspace(df["horsepower"].min(), df["horsepower"].max(), 4)
-    df["horsepower-binned"] = pd.cut(
-        df["horsepower"], bins,
-        labels=["Low", "Medium", "High"],
-        include_lowest=True
-    )
+def to_json_bytes(df):
+    return df.to_json(orient="records", indent=2).encode("utf-8")
 
-    # Dummy variables
-    df["fuel-type-gas"]      = (df["fuel-type"] == "gas").astype(int)
-    df["fuel-type-diesel"]   = (df["fuel-type"] == "diesel").astype(int)
-    df["aspiration-std"]     = (df["aspiration"] == "std").astype(int)
-    df["aspiration-turbo"]   = (df["aspiration"] == "turbo").astype(int)
 
-    return raw, df
+def numeric_cols(df):
+    return df.select_dtypes(include=np.number).columns.tolist()
 
-raw_df, clean_df = load_data()
 
-# ── Sidebar filters ───────────────────────────────────────────
-st.sidebar.title("🔧 Filters")
+def categorical_cols(df):
+    return df.select_dtypes(include=["object", "category", "bool"]).columns.tolist()
 
-fuel_options = clean_df["fuel-type"].dropna().unique().tolist()
-selected_fuel = st.sidebar.multiselect("Fuel Type", fuel_options, default=fuel_options)
 
-body_options = clean_df["body-style"].dropna().unique().tolist()
-selected_body = st.sidebar.multiselect("Body Style", body_options, default=body_options)
+def datetime_cols(df):
+    return df.select_dtypes(include=["datetime64[ns]", "datetimetz"]).columns.tolist()
 
-drive_options = clean_df["drive-wheels"].dropna().unique().tolist()
-selected_drive = st.sidebar.multiselect("Drive Wheels", drive_options, default=drive_options)
 
-filtered = clean_df[
-    clean_df["fuel-type"].isin(selected_fuel) &
-    clean_df["body-style"].isin(selected_body) &
-    clean_df["drive-wheels"].isin(selected_drive)
-]
+def load_into_session(new_df, file_id, file_name):
+    st.session_state.file_id = file_id
+    st.session_state.file_name = file_name
+    st.session_state.original_df = new_df.copy()
+    st.session_state.df = new_df.copy()
+    st.session_state.filtered_df = None
 
-# ── Header ────────────────────────────────────────────────────
-st.title("🚗 Auto Dataset — Data Wrangling Portfolio Project")
-st.markdown(
-    "An end-to-end data cleaning and exploration project using the "
-    "[UCI Auto Dataset](https://archive.ics.uci.edu/ml/machine-learning-databases/autos/imports-85.data). "
-    "Use the sidebar to filter the data."
+
+# ── Sidebar: branding + theme toggle ────────────────────────
+st.sidebar.markdown(f"## {APP_ICON} {APP_NAME}")
+st.session_state.dark_mode = st.sidebar.toggle("🌙 Dark mode", value=st.session_state.dark_mode)
+
+st.sidebar.divider()
+st.sidebar.title("📁 Upload Data")
+uploaded_file = st.sidebar.file_uploader(
+    "Upload a CSV, Excel, or JSON file", type=["csv", "xlsx", "xls", "json"]
 )
+st.sidebar.caption(f"Max file size: {MAX_FILE_SIZE_MB} MB")
 
-# ── Metrics row ───────────────────────────────────────────────
-col1, col2, col3, col4 = st.columns(4)
-col1.metric("Total Cars", len(filtered))
-col2.metric("Avg Price", f"${filtered['price'].mean():,.0f}")
-col3.metric("Avg Horsepower", f"{filtered['horsepower'].mean():.0f} hp")
-col4.metric("Fuel Types", filtered["fuel-type"].nunique())
+if uploaded_file is not None:
+    size_mb = uploaded_file.size / (1024 * 1024)
+    if size_mb > MAX_FILE_SIZE_MB:
+        st.sidebar.error(
+            f"This file is {size_mb:.1f} MB, which is over the {MAX_FILE_SIZE_MB} MB limit. "
+            "Please upload a smaller file."
+        )
+    else:
+        file_id = f"{uploaded_file.name}-{uploaded_file.size}"
+        if st.session_state.get("file_id") != file_id:
+            try:
+                new_df = load_file(uploaded_file)
+            except Exception as e:
+                st.sidebar.error(f"Couldn't read this file: {e}")
+                st.stop()
+            load_into_session(new_df, file_id, uploaded_file.name)
+
+st.sidebar.divider()
+with st.sidebar.expander("🎬 Try the example dataset"):
+    st.caption("A small movies dataset with some missing values and a duplicate row — good for testing the cleaning tools.")
+    if st.button("Load example movie data", key="sidebar_sample"):
+        load_into_session(build_sample_movies_df(), "example-movies", "example_movies.csv (built-in)")
+        st.rerun()
+
+# ── Empty state ──────────────────────────────────────────────
+if "df" not in st.session_state:
+    st.title(f"{APP_ICON} {APP_NAME}")
+    st.markdown("Upload a **CSV**, **Excel**, or **JSON** file in the sidebar to get started.")
+
+    if st.button("🎬 Try with example movie data", type="primary"):
+        load_into_session(build_sample_movies_df(), "example-movies", "example_movies.csv (built-in)")
+        st.rerun()
+
+    st.markdown(
+        f"""
+**What this tool can do for you:**
+- 🔍 Identify missing values
+- 🗑️ Remove duplicate rows
+- 🔀 Convert data types
+- 🎛️ Filter and sort your data
+- 📊 Generate charts and graphs
+- 🔢 Calculate summary statistics
+- ⬇️ Export your cleaned data (CSV, Excel, or JSON)
+
+Files up to **{MAX_FILE_SIZE_MB} MB** are supported. Your file is processed in this session only — nothing is stored permanently.
+        """
+    )
+    st.stop()
+
+df = st.session_state.df
+
+# ── Sidebar: dataset info / reset ───────────────────────────
+st.sidebar.divider()
+st.sidebar.caption(f"📄 **{st.session_state.file_name}**")
+st.sidebar.caption(f"{df.shape[0]:,} rows × {df.shape[1]} columns")
+if st.sidebar.button("↩️ Reset to original upload"):
+    st.session_state.df = st.session_state.original_df.copy()
+    st.session_state.filtered_df = None
+    st.rerun()
+
+# ── Header & top metrics ─────────────────────────────────────
+st.title(f"{APP_ICON} {APP_NAME}")
+st.caption("Upload a file, clean it, explore it, and export the result.")
+
+m1, m2, m3, m4 = st.columns(4)
+m1.metric("Rows", f"{df.shape[0]:,}")
+m2.metric("Columns", df.shape[1])
+m3.metric("Missing values", int(df.isna().sum().sum()))
+m4.metric("Duplicate rows", int(df.duplicated().sum()))
 
 st.divider()
 
-# ── Tab layout ────────────────────────────────────────────────
-tab1, tab2, tab3, tab4 = st.tabs(["📊 Charts", "🧹 Data Cleaning", "📋 Raw vs Clean", "🔢 Full Dataset"])
+tab_table, tab_clean, tab_filter, tab_viz, tab_stats, tab_export = st.tabs(
+    ["📋 Table", "🧹 Clean", "🎛️ Filter & Sort", "📊 Visualize", "🔢 Statistics", "⬇️ Export"]
+)
 
-# ── Tab 1: Charts ─────────────────────────────────────────────
-with tab1:
-    c1, c2 = st.columns(2)
+# ── Tab: Table ───────────────────────────────────────────────
+with tab_table:
+    st.subheader("Data Preview")
+    show_cols = st.multiselect(
+        "Columns to display", df.columns.tolist(), default=df.columns.tolist()
+    )
+    n_rows = st.slider("Rows to show", 5, min(1000, max(5, len(df))), min(50, len(df)) or 5)
+    st.dataframe(df[show_cols].head(n_rows) if show_cols else df.head(n_rows), use_container_width=True)
+    st.caption(f"Showing {min(n_rows, len(df))} of {len(df):,} rows.")
 
-    with c1:
-        st.subheader("Price by Body Style")
-        fig1 = px.box(filtered, x="body-style", y="price", color="body-style",
-                      labels={"price": "Price (USD)", "body-style": "Body Style"})
-        fig1.update_layout(showlegend=False)
-        st.plotly_chart(fig1, use_container_width=True)
-
-    with c2:
-        st.subheader("Horsepower Distribution")
-        fig2 = px.histogram(filtered, x="horsepower", color="horsepower-binned",
-                            nbins=30, category_orders={"horsepower-binned": ["Low","Medium","High"]},
-                            labels={"horsepower": "Horsepower", "horsepower-binned": "Category"})
-        st.plotly_chart(fig2, use_container_width=True)
-
-    c3, c4 = st.columns(2)
-
-    with c3:
-        st.subheader("Price vs Engine Size")
-        fig3 = px.scatter(filtered, x="engine-size", y="price", color="fuel-type",
-                          hover_data=["make", "body-style"],
-                          labels={"engine-size": "Engine Size", "price": "Price (USD)"})
-        st.plotly_chart(fig3, use_container_width=True)
-
-    with c4:
-        st.subheader("City Fuel Efficiency (L/100km)")
-        fig4 = px.bar(
-            filtered.groupby("body-style")["city-L/100km"].mean().reset_index(),
-            x="body-style", y="city-L/100km", color="body-style",
-            labels={"city-L/100km": "Avg L/100km", "body-style": "Body Style"}
+# ── Tab: Clean ───────────────────────────────────────────────
+with tab_clean:
+    st.subheader("Missing Values")
+    missing = df.isna().sum()
+    missing = missing[missing > 0]
+    if missing.empty:
+        st.success("No missing values found. 🎉")
+    else:
+        miss_table = pd.DataFrame(
+            {
+                "Column": missing.index,
+                "Missing Count": missing.values,
+                "% Missing": (missing.values / len(df) * 100).round(1),
+                "Dtype": [str(df[c].dtype) for c in missing.index],
+            }
         )
-        fig4.update_layout(showlegend=False)
-        st.plotly_chart(fig4, use_container_width=True)
+        st.dataframe(miss_table, use_container_width=True, hide_index=True)
 
-# ── Tab 2: Data Cleaning Steps ────────────────────────────────
-with tab2:
-    st.subheader("What Was Done to Clean This Data")
+        st.markdown("##### Fix missing values in a column")
+        col_to_fix = st.selectbox("Column", missing.index.tolist(), key="fix_col")
+        is_numeric = pd.api.types.is_numeric_dtype(df[col_to_fix])
+        method_options = ["Drop rows with missing value"]
+        if is_numeric:
+            method_options += ["Fill with mean", "Fill with median"]
+        method_options += ["Fill with most frequent value", "Fill with custom value", "Forward fill", "Backward fill"]
+        method = st.selectbox("Method", method_options, key="fix_method")
+        custom_val = None
+        if method == "Fill with custom value":
+            custom_val = st.text_input("Custom value", key="fix_custom_val")
 
-    steps = {
-        "1. Replaced '?' with NaN": (
-            "The raw dataset used '?' as a placeholder for missing values. "
-            "These were replaced with NaN so pandas can detect and handle them properly."
-        ),
-        "2. Filled missing numeric values with column mean": (
-            "Columns like normalized-losses, bore, stroke, horsepower, and peak-rpm "
-            "had missing entries filled with each column's average — a common imputation strategy."
-        ),
-        "3. Filled missing 'num-of-doors' with most frequent value": (
-            "84% of sedans have four doors, so missing values were filled with 'four'."
-        ),
-        "4. Dropped rows with no price": (
-            "Price is the target variable for prediction. Rows without a price are useless "
-            "for modeling, so they were removed entirely."
-        ),
-        "5. Fixed data types": (
-            "Columns like price, horsepower, and peak-rpm were stored as text (object). "
-            "They were converted to float so math operations work correctly."
-        ),
-        "6. Converted mpg → L/100km": (
-            "Fuel consumption was converted from miles per gallon to liters per 100km "
-            "using the formula: L/100km = 235 / mpg."
-        ),
-        "7. Normalized length, width, height": (
-            "Each dimension was divided by its max value, scaling all values to a 0–1 range. "
-            "This prevents large-scale columns from dominating models."
-        ),
-        "8. Binned horsepower into Low / Medium / High": (
-            "Continuous horsepower values were grouped into 3 equal-width bins for "
-            "easier categorical analysis."
-        ),
-        "9. Created dummy variables for fuel-type and aspiration": (
-            "Text categories like 'gas'/'diesel' were converted to 0/1 columns so "
-            "they can be used in machine learning models."
-        ),
-    }
+        if st.button("Apply fix", key="apply_fix"):
+            new_df = df.copy()
+            try:
+                if method == "Drop rows with missing value":
+                    new_df = new_df.dropna(subset=[col_to_fix])
+                elif method == "Fill with mean":
+                    new_df[col_to_fix] = new_df[col_to_fix].fillna(new_df[col_to_fix].mean())
+                elif method == "Fill with median":
+                    new_df[col_to_fix] = new_df[col_to_fix].fillna(new_df[col_to_fix].median())
+                elif method == "Fill with most frequent value":
+                    mode = new_df[col_to_fix].mode(dropna=True)
+                    if len(mode):
+                        new_df[col_to_fix] = new_df[col_to_fix].fillna(mode.iloc[0])
+                elif method == "Fill with custom value":
+                    new_df[col_to_fix] = new_df[col_to_fix].fillna(custom_val)
+                elif method == "Forward fill":
+                    new_df[col_to_fix] = new_df[col_to_fix].ffill()
+                elif method == "Backward fill":
+                    new_df[col_to_fix] = new_df[col_to_fix].bfill()
+                new_df = new_df.reset_index(drop=True)
+                st.session_state.df = new_df
+                st.success(f"Applied: {method} → '{col_to_fix}'")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Couldn't apply that fix: {e}")
 
-    for title, explanation in steps.items():
-        with st.expander(title):
-            st.write(explanation)
+    st.divider()
+    st.subheader("Duplicate Rows")
+    dup_count = int(df.duplicated().sum())
+    st.write(f"Found **{dup_count}** duplicate row(s).")
+    dup_subset = st.multiselect(
+        "Check duplicates based on specific columns (leave empty to check full rows)",
+        df.columns.tolist(),
+        key="dup_subset",
+    )
+    keep_option = st.radio("Keep which copy?", ["first", "last"], horizontal=True, key="dup_keep")
+    if st.button("🗑️ Remove duplicate rows", disabled=dup_count == 0 and not dup_subset):
+        subset = dup_subset if dup_subset else None
+        new_df = df.drop_duplicates(subset=subset, keep=keep_option).reset_index(drop=True)
+        removed = len(df) - len(new_df)
+        st.session_state.df = new_df
+        st.success(f"Removed {removed} duplicate row(s).")
+        st.rerun()
 
-    st.subheader("Missing Values — Before Cleaning")
-    raw_copy = raw_df.replace("?", np.nan)
-    missing = raw_copy.isnull().sum()
-    missing = missing[missing > 0].reset_index()
-    missing.columns = ["Column", "Missing Count"]
-    missing["% Missing"] = (missing["Missing Count"] / len(raw_copy) * 100).round(1)
-    st.dataframe(missing, use_container_width=True)
+    st.divider()
+    st.subheader("Convert Data Types")
+    c1, c2 = st.columns(2)
+    with c1:
+        col_to_convert = st.selectbox("Column", df.columns.tolist(), key="conv_col")
+        st.caption(f"Current dtype: `{df[col_to_convert].dtype}`")
+    with c2:
+        target_type = st.selectbox(
+            "Convert to",
+            ["String / Text", "Integer", "Float", "Datetime", "Category", "Boolean"],
+            key="conv_target",
+        )
+    if st.button("🔀 Convert", key="apply_convert"):
+        new_df = df.copy()
+        try:
+            if target_type == "String / Text":
+                new_df[col_to_convert] = new_df[col_to_convert].astype(str)
+            elif target_type == "Integer":
+                new_df[col_to_convert] = pd.to_numeric(new_df[col_to_convert], errors="coerce")
+                if new_df[col_to_convert].isna().any():
+                    st.warning("Some values couldn't be converted and were set to missing.")
+                new_df[col_to_convert] = new_df[col_to_convert].astype("Int64")
+            elif target_type == "Float":
+                new_df[col_to_convert] = pd.to_numeric(new_df[col_to_convert], errors="coerce")
+            elif target_type == "Datetime":
+                new_df[col_to_convert] = pd.to_datetime(new_df[col_to_convert], errors="coerce")
+            elif target_type == "Category":
+                new_df[col_to_convert] = new_df[col_to_convert].astype("category")
+            elif target_type == "Boolean":
+                new_df[col_to_convert] = (
+                    new_df[col_to_convert]
+                    .astype(str)
+                    .str.strip()
+                    .str.lower()
+                    .map({"true": True, "1": True, "yes": True, "false": False, "0": False, "no": False})
+                )
+            st.session_state.df = new_df
+            st.success(f"Converted '{col_to_convert}' to {target_type}.")
+            st.rerun()
+        except Exception as e:
+            st.error(f"Conversion failed: {e}")
 
-# ── Tab 3: Raw vs Clean ───────────────────────────────────────
-with tab3:
-    st.subheader("Raw Data (first 10 rows)")
-    st.dataframe(raw_df.head(10), use_container_width=True)
+# ── Tab: Filter & Sort ───────────────────────────────────────
+with tab_filter:
+    st.subheader("Filter Rows")
+    filter_cols = st.multiselect("Filter by column(s)", df.columns.tolist(), key="filter_cols")
 
-    st.subheader("Cleaned Data (first 10 rows)")
-    st.dataframe(clean_df.head(10), use_container_width=True)
+    working = df.copy()
+    with st.form("filter_form"):
+        for col in filter_cols:
+            if pd.api.types.is_numeric_dtype(df[col]):
+                lo, hi = float(df[col].min()), float(df[col].max())
+                if lo == hi:
+                    st.caption(f"'{col}' has a single value ({lo}); no range to filter.")
+                    continue
+                sel = st.slider(f"{col} range", lo, hi, (lo, hi), key=f"f_{col}")
+                working = working[(working[col] >= sel[0]) & (working[col] <= sel[1])]
+            elif pd.api.types.is_datetime64_any_dtype(df[col]):
+                min_d, max_d = df[col].min(), df[col].max()
+                sel = st.date_input(f"{col} range", (min_d, max_d), key=f"f_{col}")
+                if isinstance(sel, tuple) and len(sel) == 2:
+                    working = working[(working[col] >= pd.Timestamp(sel[0])) & (working[col] <= pd.Timestamp(sel[1]))]
+            else:
+                uniques = df[col].dropna().unique().tolist()
+                if len(uniques) <= MAX_UNIQUE_FOR_MULTISELECT:
+                    sel = st.multiselect(f"{col} values", uniques, default=uniques, key=f"f_{col}")
+                    working = working[working[col].isin(sel)]
+                else:
+                    sel = st.text_input(f"{col} contains", key=f"f_{col}")
+                    if sel:
+                        working = working[working[col].astype(str).str.contains(sel, case=False, na=False)]
+        apply_filter = st.form_submit_button("Apply filters")
 
-# ── Tab 4: Full Dataset ───────────────────────────────────────
-with tab4:
-    st.subheader(f"Filtered Dataset — {len(filtered)} rows")
-    st.dataframe(filtered, use_container_width=True)
-    st.download_button("⬇ Download Filtered CSV", filtered.to_csv(index=False),
-                       file_name="filtered_auto_data.csv", mime="text/csv")
+    if apply_filter or filter_cols:
+        st.session_state.filtered_df = working
+        st.caption(f"Filtered: {len(working):,} of {len(df):,} rows match.")
+    else:
+        st.session_state.filtered_df = df
+
+    st.divider()
+    st.subheader("Sort")
+    sort_cols = st.multiselect("Sort by column(s) (priority order)", df.columns.tolist(), key="sort_cols")
+    sort_dir = st.radio("Direction", ["Ascending", "Descending"], horizontal=True, key="sort_dir")
+    base = st.session_state.filtered_df if st.session_state.filtered_df is not None else df
+    if sort_cols:
+        base = base.sort_values(by=sort_cols, ascending=(sort_dir == "Ascending"))
+        st.session_state.filtered_df = base
+
+    st.markdown("##### Result")
+    st.dataframe(base, use_container_width=True)
+    st.caption(f"{len(base):,} rows in this view.")
+
+    cc1, cc2 = st.columns(2)
+    with cc1:
+        if st.button("✅ Keep only this view as my working data"):
+            st.session_state.df = base.reset_index(drop=True)
+            st.session_state.filtered_df = None
+            st.success("Working data updated.")
+            st.rerun()
+    with cc2:
+        st.download_button(
+            "⬇ Download this view as CSV",
+            to_csv_bytes(base),
+            file_name="filtered_data.csv",
+            mime="text/csv",
+        )
+
+# ── Tab: Visualize ───────────────────────────────────────────
+with tab_viz:
+    st.subheader("Charts")
+    num_cols = numeric_cols(df)
+    cat_cols = categorical_cols(df)
+    green_scale = ["#d9f7e3", ACCENT, ACCENT_DARK]
+
+    chart_type = st.selectbox(
+        "Chart type",
+        ["Histogram", "Bar (category counts)", "Scatter", "Box", "Line", "Pie", "Correlation Heatmap"],
+    )
+
+    try:
+        if chart_type == "Histogram":
+            if not num_cols:
+                st.info("No numeric columns available for a histogram.")
+            else:
+                x = st.selectbox("Column", num_cols, key="hist_x")
+                color = st.selectbox("Color by (optional)", [None] + cat_cols, key="hist_color")
+                fig = px.histogram(df, x=x, color=color, color_discrete_sequence=px.colors.sequential.Greens[2:])
+                st.plotly_chart(fig, use_container_width=True)
+
+        elif chart_type == "Bar (category counts)":
+            if not cat_cols:
+                st.info("No categorical columns available.")
+            else:
+                x = st.selectbox("Column", cat_cols, key="bar_x")
+                counts = df[x].value_counts().reset_index()
+                counts.columns = [x, "count"]
+                fig = px.bar(counts, x=x, y="count", color_discrete_sequence=[ACCENT])
+                st.plotly_chart(fig, use_container_width=True)
+
+        elif chart_type == "Scatter":
+            if len(num_cols) < 2:
+                st.info("Need at least 2 numeric columns for a scatter plot.")
+            else:
+                x = st.selectbox("X axis", num_cols, key="sc_x")
+                y = st.selectbox("Y axis", [c for c in num_cols if c != x] or num_cols, key="sc_y")
+                color = st.selectbox("Color by (optional)", [None] + cat_cols, key="sc_color")
+                fig = px.scatter(df, x=x, y=y, color=color, color_discrete_sequence=px.colors.sequential.Greens[2:])
+                st.plotly_chart(fig, use_container_width=True)
+
+        elif chart_type == "Box":
+            if not num_cols:
+                st.info("No numeric columns available.")
+            else:
+                y = st.selectbox("Numeric column", num_cols, key="box_y")
+                x = st.selectbox("Group by (optional)", [None] + cat_cols, key="box_x")
+                fig = px.box(df, x=x, y=y, color_discrete_sequence=[ACCENT])
+                st.plotly_chart(fig, use_container_width=True)
+
+        elif chart_type == "Line":
+            if not num_cols:
+                st.info("No numeric columns available.")
+            else:
+                y = st.selectbox("Y axis", num_cols, key="line_y")
+                x_options = datetime_cols(df) + num_cols
+                x = st.selectbox("X axis", x_options, key="line_x")
+                fig = px.line(df.sort_values(by=x), x=x, y=y, color_discrete_sequence=[ACCENT_DARK])
+                st.plotly_chart(fig, use_container_width=True)
+
+        elif chart_type == "Pie":
+            if not cat_cols:
+                st.info("No categorical columns available.")
+            else:
+                x = st.selectbox("Column", cat_cols, key="pie_x")
+                counts = df[x].value_counts().reset_index()
+                counts.columns = [x, "count"]
+                fig = px.pie(counts, names=x, values="count", color_discrete_sequence=px.colors.sequential.Greens[::-1])
+                st.plotly_chart(fig, use_container_width=True)
+
+        elif chart_type == "Correlation Heatmap":
+            if len(num_cols) < 2:
+                st.info("Need at least 2 numeric columns for a correlation heatmap.")
+            else:
+                corr = df[num_cols].corr()
+                fig = px.imshow(corr, text_auto=".2f", color_continuous_scale="Greens", zmin=-1, zmax=1)
+                st.plotly_chart(fig, use_container_width=True)
+    except Exception as e:
+        st.error(f"Couldn't render that chart: {e}")
+
+# ── Tab: Statistics ──────────────────────────────────────────
+with tab_stats:
+    st.subheader("Summary Statistics")
+    num_cols = numeric_cols(df)
+    if num_cols:
+        st.markdown("##### Numeric columns")
+        st.dataframe(df[num_cols].describe().T, use_container_width=True)
+    else:
+        st.info("No numeric columns to summarize.")
+
+    cat_cols = categorical_cols(df)
+    if cat_cols:
+        st.markdown("##### Categorical columns")
+        col = st.selectbox("Column", cat_cols, key="stats_cat_col")
+        vc = df[col].value_counts(dropna=False).reset_index()
+        vc.columns = [col, "count"]
+        vc["%"] = (vc["count"] / len(df) * 100).round(1)
+        st.dataframe(vc, use_container_width=True, hide_index=True)
+
+# ── Tab: Export ──────────────────────────────────────────────
+with tab_export:
+    st.subheader("Export Your Cleaned Data")
+    st.write(f"Current working dataset: **{df.shape[0]:,} rows × {df.shape[1]} columns**")
+    e1, e2, e3 = st.columns(3)
+    with e1:
+        st.download_button("⬇ Download CSV", to_csv_bytes(df), file_name="cleaned_data.csv", mime="text/csv")
+    with e2:
+        st.download_button(
+            "⬇ Download Excel",
+            to_excel_bytes(df),
+            file_name="cleaned_data.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+    with e3:
+        st.download_button(
+            "⬇ Download JSON", to_json_bytes(df), file_name="cleaned_data.json", mime="application/json"
+        )

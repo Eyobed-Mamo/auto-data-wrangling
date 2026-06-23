@@ -141,8 +141,8 @@ if uploaded_file is not None:
     size_mb = uploaded_file.size / (1024 * 1024)
     if size_mb > MAX_FILE_SIZE_MB:
         st.sidebar.error(
-            f"This file is {size_mb:.1f} MB, which is over the {MAX_FILE_SIZE_MB} MB limit. "
-            "Please upload a smaller file."
+            f"That file's {size_mb:.1f} MB — a bit over my {MAX_FILE_SIZE_MB} MB limit. "
+            "Try a smaller one?"
         )
     else:
         file_id = f"{uploaded_file.name}-{uploaded_file.size}"
@@ -156,15 +156,32 @@ if uploaded_file is not None:
 
 st.sidebar.divider()
 with st.sidebar.expander("🎬 Try the example dataset"):
-    st.caption("A small movies dataset with some missing values and a duplicate row — good for testing the cleaning tools.")
+    st.caption("A small movies dataset with a few missing values and one duplicate thrown in, so you've got something to clean.")
     if st.button("Load example movie data", key="sidebar_sample"):
         load_into_session(build_sample_movies_df(), "example-movies", "example_movies.csv (built-in)")
         st.rerun()
 
+st.sidebar.divider()
+with st.sidebar.expander("ℹ️ About"):
+    st.markdown(
+        """
+**Built by Eyobed Mamo**
+
+<!-- TODO(Eyobed): replace this line with your own "why I built this" note —
+it'll show up right here in the app. -->
+*Write a line or two here about why you made this.*
+
+[GitHub](https://github.com/Eyobed-Mamo)
+        """
+    )
+
 # ── Empty state ──────────────────────────────────────────────
 if "df" not in st.session_state:
     st.title(f"{APP_ICON} {APP_NAME}")
-    st.markdown("Upload a **CSV**, **Excel**, or **JSON** file in the sidebar to get started.")
+    st.markdown(
+        "Drop a CSV, Excel, or JSON file in the sidebar and I'll help you clean it up, "
+        "dig through it, and get it ready for whatever's next."
+    )
 
     if st.button("🎬 Try with example movie data", type="primary"):
         load_into_session(build_sample_movies_df(), "example-movies", "example_movies.csv (built-in)")
@@ -172,16 +189,17 @@ if "df" not in st.session_state:
 
     st.markdown(
         f"""
-**What this tool can do for you:**
-- 🔍 Identify missing values
-- 🗑️ Remove duplicate rows
-- 🔀 Convert data types
-- 🎛️ Filter and sort your data
-- 📊 Generate charts and graphs
-- 🔢 Calculate summary statistics
-- ⬇️ Export your cleaned data (CSV, Excel, or JSON)
+Once your data's loaded, here's what you can do with it:
 
-Files up to **{MAX_FILE_SIZE_MB} MB** are supported. Your file is processed in this session only — nothing is stored permanently.
+- 🔍 Spot missing values and decide how to handle them
+- 🗑️ Find and clear out duplicate rows
+- 🔀 Fix data types that came in wrong (text that should be a number, etc.)
+- 🎛️ Filter down to what you care about, then sort it
+- 📊 Throw together charts to see what's going on
+- 🔢 Pull quick summary stats without writing a line of code
+- ⬇️ Export the cleaned version as CSV, Excel, or JSON when you're done
+
+Handles files up to **{MAX_FILE_SIZE_MB} MB**. Everything happens in your browser session — nothing gets saved on a server anywhere.
         """
     )
     st.stop()
@@ -199,7 +217,7 @@ if st.sidebar.button("↩️ Reset to original upload"):
 
 # ── Header & top metrics ─────────────────────────────────────
 st.title(f"{APP_ICON} {APP_NAME}")
-st.caption("Upload a file, clean it, explore it, and export the result.")
+st.caption("Drop in a file, clean it up, poke around, and export when you're happy with it.")
 
 m1, m2, m3, m4 = st.columns(4)
 m1.metric("Rows", f"{df.shape[0]:,}")
@@ -522,3 +540,6 @@ with tab_export:
         st.download_button(
             "⬇ Download JSON", to_json_bytes(df), file_name="cleaned_data.json", mime="application/json"
         )
+
+st.divider()
+st.caption("Made by Eyobed Mamo · [GitHub](https://github.com/Eyobed-Mamo)")

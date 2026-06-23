@@ -17,12 +17,22 @@ st.set_page_config(page_title=APP_NAME, page_icon=APP_ICON, layout="wide")
 # ── Accent theme (fixed) ─────────────────────────────────────
 accent_css = f"""
 <style>
+body, .stApp {{
+    background-color: #0f172a;  /* Midnight blue */
+    color: white;
+}}
+
 div[data-testid="stMetricValue"] {{ color: {ACCENT_DARK}; }}
 .stTabs [aria-selected="true"] {{ color: {ACCENT_DARK} !important; border-bottom-color: {ACCENT_DARK} !important; }}
 .stButton button, .stDownloadButton button {{
-    background-color: {ACCENT}; color: #ffffff; border: none;
+    background-color: {ACCENT};
+    color: #ffffff;
+    border: none;
 }}
-.stButton button:hover, .stDownloadButton button:hover {{ background-color: {ACCENT_DARK}; color: #fff; }}
+.stButton button:hover, .stDownloadButton button:hover {{
+    background-color: {ACCENT_DARK};
+    color: #fff;
+}}
 </style>
 """
 
@@ -31,10 +41,6 @@ st.markdown(accent_css, unsafe_allow_html=True)
 # ── Soft/rounded style + custom font (applies in both themes) ──
 st.markdown(
     f"""
-<style>
-
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
-
 html, body, [class*="css"] {{ font-family: 'Poppins', sans-serif; }}
 
 .stButton button, .stDownloadButton button {{

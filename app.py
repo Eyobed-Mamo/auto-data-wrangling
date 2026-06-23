@@ -7,8 +7,8 @@ import streamlit as st
 # ── Brand ────────────────────────────────────────────────────
 APP_NAME = "DataForge"
 APP_ICON = "⚙️"
-ACCENT = "#3b82f6"      # blue
-ACCENT_DARK = "#1e3a8a"  # dark navy blue
+ACCENT = "#3b82f6"     
+ACCENT_DARK = "#0f172a"   # almost midnight blue  
 MAX_FILE_SIZE_MB = 50
 MAX_UNIQUE_FOR_MULTISELECT = 50
 

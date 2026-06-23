@@ -41,6 +41,10 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
+## Make it yours
+
+Open `app.py` and find the `### About` expander near the top of the sidebar section — there's a placeholder line marked with a `TODO(Eyobed)` comment. Swap it out for your own line or two about why you built this.
+
 ## Deploy
 
 Push to GitHub, then deploy for free on [Streamlit Community Cloud](https://streamlit.io/cloud) by pointing it at `app.py` in this repo.
@@ -48,3 +52,7 @@ Push to GitHub, then deploy for free on [Streamlit Community Cloud](https://stre
 ## Privacy
 
 Uploaded files are processed only in-memory for your session and are not stored.
+
+---
+
+Built by [Eyobed Mamo](https://github.com/Eyobed-Mamo)

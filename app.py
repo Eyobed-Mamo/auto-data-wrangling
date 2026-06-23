@@ -7,12 +7,13 @@ import streamlit as st
 # ── Brand ────────────────────────────────────────────────────
 APP_NAME = "DataForge"
 APP_ICON = "⚙️"
-ACCENT = "#191970"      # Dark blue
-ACCENT_DARK = "#1c3144"
+ACCENT = "#3b82f6"      # blue
+ACCENT_DARK = "#1e3a8a"  # dark navy blue
 MAX_FILE_SIZE_MB = 50
 MAX_UNIQUE_FOR_MULTISELECT = 50
 
 st.set_page_config(page_title=APP_NAME, page_icon=APP_ICON, layout="wide")
+
 # ── Accent theme (fixed) ─────────────────────────────────────
 accent_css = f"""
 <style>
@@ -44,19 +45,35 @@ html, body, [class*="css"] {{ font-family: 'Poppins', sans-serif; }}
 .stButton button:active, .stDownloadButton button:active {{ transform: scale(0.97); }}
 
 div[data-testid="stMetric"] {{
-    background: rgba(34, 197, 94, 0.08);
+    background: rgba(59, 130, 246, 0.08);
     border-radius: 16px;
     padding: 12px 16px;
-    border: 1px solid rgba(34, 197, 94, 0.25);
+    border: 1px solid rgba(59, 130, 246, 0.25);
 }}
 
 div[data-testid="stDataFrame"], div[data-testid="stExpander"] {{
     border-radius: 14px !important;
+    border: 1px solid rgba(59, 130, 246, 0.2) !important;
     overflow: hidden;
 }}
 
 div[data-testid="stFileUploaderDropzone"] {{
     border-radius: 16px !important;
+    border: 1.5px dashed rgba(59, 130, 246, 0.4) !important;
+}}
+
+div[data-testid="stVerticalBlockBorderWrapper"] {{
+    border: 1px solid rgba(59, 130, 246, 0.18);
+    border-radius: 14px;
+    padding: 0.5rem;
+}}
+
+hr {{
+    border-top: 1px solid rgba(59, 130, 246, 0.25) !important;
+}}
+
+section[data-testid="stSidebar"] {{
+    border-right: 1px solid rgba(59, 130, 246, 0.2);
 }}
 
 .stTabs [data-baseweb="tab"] {{
@@ -167,7 +184,6 @@ def load_into_session(new_df, file_id, file_name):
 
 # ── Sidebar: branding + theme toggle ────────────────────────
 st.sidebar.markdown(f"## {APP_ICON} {APP_NAME}")
-st.session_state.dark_mode = st.sidebar.toggle("🌙 Dark mode", value=st.session_state.dark_mode)
 
 st.sidebar.divider()
 st.sidebar.title("📁 Upload Data")
@@ -286,6 +302,7 @@ with tab_table:
         "Columns to display", df.columns.tolist(), default=df.columns.tolist()
     )
     n_rows = st.slider("Rows to show", 5, min(1000, max(5, len(df))), min(50, len(df)) or 5)
+    st.divider()
     st.dataframe(df[show_cols].head(n_rows) if show_cols else df.head(n_rows), use_container_width=True)
     st.caption(f"Showing {min(n_rows, len(df))} of {len(df):,} rows.")
 
@@ -475,12 +492,13 @@ with tab_viz:
     st.subheader("Charts")
     num_cols = numeric_cols(df)
     cat_cols = categorical_cols(df)
-    green_scale = ["#d9f7e3", ACCENT, ACCENT_DARK]
+    blue_scale = ["#dbeafe", ACCENT, ACCENT_DARK]
 
     chart_type = st.selectbox(
         "Chart type",
         ["Histogram", "Bar (category counts)", "Scatter", "Box", "Line", "Pie", "Correlation Heatmap"],
     )
+    st.divider()
 
     try:
         if chart_type == "Histogram":
@@ -489,7 +507,7 @@ with tab_viz:
             else:
                 x = st.selectbox("Column", num_cols, key="hist_x")
                 color = st.selectbox("Color by (optional)", [None] + cat_cols, key="hist_color")
-                fig = px.histogram(df, x=x, color=color, color_discrete_sequence=px.colors.sequential.Greens[2:])
+                fig = px.histogram(df, x=x, color=color, color_discrete_sequence=px.colors.sequential.Blues[2:])
                 st.plotly_chart(fig, use_container_width=True)
 
         elif chart_type == "Bar (category counts)":
@@ -509,7 +527,7 @@ with tab_viz:
                 x = st.selectbox("X axis", num_cols, key="sc_x")
                 y = st.selectbox("Y axis", [c for c in num_cols if c != x] or num_cols, key="sc_y")
                 color = st.selectbox("Color by (optional)", [None] + cat_cols, key="sc_color")
-                fig = px.scatter(df, x=x, y=y, color=color, color_discrete_sequence=px.colors.sequential.Greens[2:])
+                fig = px.scatter(df, x=x, y=y, color=color, color_discrete_sequence=px.colors.sequential.Blues[2:])
                 st.plotly_chart(fig, use_container_width=True)
 
         elif chart_type == "Box":
@@ -538,7 +556,7 @@ with tab_viz:
                 x = st.selectbox("Column", cat_cols, key="pie_x")
                 counts = df[x].value_counts().reset_index()
                 counts.columns = [x, "count"]
-                fig = px.pie(counts, names=x, values="count", color_discrete_sequence=px.colors.sequential.Greens[::-1])
+                fig = px.pie(counts, names=x, values="count", color_discrete_sequence=px.colors.sequential.Blues[::-1])
                 st.plotly_chart(fig, use_container_width=True)
 
         elif chart_type == "Correlation Heatmap":
@@ -546,7 +564,7 @@ with tab_viz:
                 st.info("Need at least 2 numeric columns for a correlation heatmap.")
             else:
                 corr = df[num_cols].corr()
-                fig = px.imshow(corr, text_auto=".2f", color_continuous_scale="Greens", zmin=-1, zmax=1)
+                fig = px.imshow(corr, text_auto=".2f", color_continuous_scale="Blues", zmin=-1, zmax=1)
                 st.plotly_chart(fig, use_container_width=True)
     except Exception as e:
         st.error(f"Couldn't render that chart: {e}")
@@ -561,6 +579,7 @@ with tab_stats:
     else:
         st.info("No numeric columns to summarize.")
 
+    st.divider()
     cat_cols = categorical_cols(df)
     if cat_cols:
         st.markdown("##### Categorical columns")
@@ -574,6 +593,7 @@ with tab_stats:
 with tab_export:
     st.subheader("Export Your Cleaned Data")
     st.write(f"Current working dataset: **{df.shape[0]:,} rows × {df.shape[1]} columns**")
+    st.divider()
     e1, e2, e3 = st.columns(3)
     with e1:
         st.download_button("⬇ Download CSV", to_csv_bytes(df), file_name="cleaned_data.csv", mime="text/csv")

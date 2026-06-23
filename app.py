@@ -13,6 +13,19 @@ MAX_FILE_SIZE_MB = 50
 MAX_UNIQUE_FOR_MULTISELECT = 50
 
 st.set_page_config(page_title=APP_NAME, page_icon=APP_ICON, layout="wide")
+# ── Accent theme (fixed) ─────────────────────────────────────
+accent_css = f"""
+<style>
+div[data-testid="stMetricValue"] {{ color: {ACCENT_DARK}; }}
+.stTabs [aria-selected="true"] {{ color: {ACCENT_DARK} !important; border-bottom-color: {ACCENT_DARK} !important; }}
+.stButton button, .stDownloadButton button {{
+    background-color: {ACCENT}; color: #ffffff; border: none;
+}}
+.stButton button:hover, .stDownloadButton button:hover {{ background-color: {ACCENT_DARK}; color: #fff; }}
+</style>
+"""
+
+st.markdown(accent_css, unsafe_allow_html=True)
 
 # ── Soft/rounded style + custom font (applies in both themes) ──
 st.markdown(

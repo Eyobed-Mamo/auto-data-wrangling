@@ -7,47 +7,12 @@ import streamlit as st
 # ── Brand ────────────────────────────────────────────────────
 APP_NAME = "DataForge"
 APP_ICON = "⚙️"
-ACCENT = "#22c55e"      # green
-ACCENT_DARK = "#16a34a"
+ACCENT = "#191970"      # Dark blue
+ACCENT_DARK = "#1c3144"
 MAX_FILE_SIZE_MB = 50
 MAX_UNIQUE_FOR_MULTISELECT = 50
 
 st.set_page_config(page_title=APP_NAME, page_icon=APP_ICON, layout="wide")
-
-# ── Theme toggle (light/dark) ────────────────────────────────
-if "dark_mode" not in st.session_state:
-    st.session_state.dark_mode = False
-
-dark_css = f"""
-<style>
-.stApp {{ background-color: #0e1117; color: #fafafa; }}
-section[data-testid="stSidebar"] {{ background-color: #161a23; }}
-section[data-testid="stSidebar"] * {{ color: #fafafa !important; }}
-h1, h2, h3, h4, h5, h6, p, span, label, .stMarkdown {{ color: #fafafa; }}
-div[data-testid="stMetricValue"] {{ color: {ACCENT}; }}
-div[data-testid="stDataFrame"] {{ background-color: #161a23; }}
-.stTabs [data-baseweb="tab"] {{ color: #c9c9c9; }}
-.stTabs [aria-selected="true"] {{ color: {ACCENT} !important; border-bottom-color: {ACCENT} !important; }}
-.stButton button, .stDownloadButton button {{
-    background-color: {ACCENT}; color: #0e1117; border: none;
-}}
-.stButton button:hover, .stDownloadButton button:hover {{ background-color: {ACCENT_DARK}; color: #fff; }}
-input, textarea, select {{ background-color: #1c212c !important; color: #fafafa !important; }}
-</style>
-"""
-
-light_css = f"""
-<style>
-div[data-testid="stMetricValue"] {{ color: {ACCENT_DARK}; }}
-.stTabs [aria-selected="true"] {{ color: {ACCENT_DARK} !important; border-bottom-color: {ACCENT_DARK} !important; }}
-.stButton button, .stDownloadButton button {{
-    background-color: {ACCENT}; color: #ffffff; border: none;
-}}
-.stButton button:hover, .stDownloadButton button:hover {{ background-color: {ACCENT_DARK}; color: #fff; }}
-</style>
-"""
-
-st.markdown(dark_css if st.session_state.dark_mode else light_css, unsafe_allow_html=True)
 
 # ── Soft/rounded style + custom font (applies in both themes) ──
 st.markdown(
